@@ -1,0 +1,71 @@
+import ee
+import geopandas as gpd
+import matplotlib.pyplot as plt
+from datetime import datetime
+import json
+
+# Initialize the Earth Engine API
+#ee.Initialize()
+ee.Authenticate()
+ee.Initialize(project='ee-naturedots-proj')
+
+def load_geojson(filepath):
+    with open(filepath) as f:
+        geojson = json.load(f)
+    return geojson
+
+def get_water_extent_timeseries(geojson, start_date, end_date):
+    # Convert GeoJSON to EE object
+    aoi = ee.Geometry.Polygon(geojson['features'][0]['geometry']['coordinates'])
+
+    # Load the JRC Global Surface Water dataset
+    water = ee.ImageCollection('JRC/GSW1_4/MonthlyHistory') \
+        .filterDate(start_date, end_date) \
+        .select('water')
+
+    def calculate_water_area(image):
+        water_mask = image.eq(2)  # Permanent water
+        water_area = water_mask.multiply(ee.Image.pixelArea()).reduceRegion(
+            reducer=ee.Reducer.sum(),
+            geometry=aoi,
+            scale=30,
+            maxPixels=1e9
+        )
+        return ee.Feature(None, {
+            'date': image.date().format('YYYY-MM-dd'),
+            'water_area': water_area.get('water')
+        })
+
+    # Map the function over the image collection
+    water_areas = water.map(calculate_water_area).getInfo()
+
+    # Extract data
+    dates = [datetime.strptime(feature['properties']['date'], '%Y-%m-%d') for feature in water_areas['features']]
+    areas = [feature['properties']['water_area'] for feature in water_areas['features']]
+
+    return dates, areas
+
+def plot_timeseries(dates, areas, output_file):
+    plt.figure(figsize=(10, 6))
+    plt.plot(dates, areas, marker='o', linestyle='-')
+    plt.xlabel('Date')
+    plt.ylabel('Water Area (square meters)')
+    plt.title('Surface Water Extent Time Series')
+    plt.grid(True)
+    plt.savefig(output_file)
+    plt.show()
+
+# Example usage
+geojson_file = 'manasbal.geojson'
+start_date = '2011-01-01'
+end_date = '2012-01-01'
+output_image = 'surface_water_extent_timeseries.png'
+
+# Load GeoJSON file
+geojson = load_geojson(geojson_file)
+
+# Get water extent time series
+dates, areas = get_water_extent_timeseries(geojson, start_date, end_date)
+
+# Plot and save the time series
+plot_timeseries(dates, areas, output_image)
