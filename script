@@ -5,7 +5,6 @@ from datetime import datetime
 import json
 
 # Initialize the Earth Engine API
-#ee.Initialize()
 ee.Authenticate()
 ee.Initialize(project='ee-naturedots-proj')
 
