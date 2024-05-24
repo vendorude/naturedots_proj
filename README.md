@@ -1,4 +1,4 @@
-# Nature Dots Sample Project
+# Lake Surface Area Time Series Plotting
 
 A brief description of how this project made and how to use
 
