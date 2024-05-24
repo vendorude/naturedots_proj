@@ -7,6 +7,7 @@ import json
 # Initialize the Earth Engine API
 ee.Authenticate()
 ee.Initialize(project='ee-naturedots-proj')
+# In place of 'ee-naturedots-proj' above use a 'project name' that was registered in your earth engine account that you used for authentication.
 
 def load_geojson(filepath):
     with open(filepath) as f:
